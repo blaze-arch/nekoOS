@@ -61,5 +61,5 @@ proc createGlobalDescriptor*(base: uint32, limit: uint32, flag: uint16): uint64 
 proc loadGdt*(where: pointer) {.asmNoStackFrame.} = 
   # eax is the arg of where
   asm """
-    lgdt [eax]
+    lgdt (%eax)
   """

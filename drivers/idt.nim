@@ -36,5 +36,5 @@ proc createInterruptDescriptor*(address: uint32 = 0, selector: uint16 = 0, ## Cr
 proc loadIdt*(where: pointer) {.asmNoStackFrame.} = 
   # eax is the arg of where
   asm """
-    lidt [eax]
+    lidt (%eax)
   """
