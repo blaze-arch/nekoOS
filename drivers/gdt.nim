@@ -44,7 +44,7 @@ const gdt_data_pl3* = seg_desctype(1) or seg_pres(1) or ## Userspace Data
               seg_size(1) or seg_gran(1) or
               seg_priv(3) or seg_data_rdwr
 
-proc createDescriptor*(base: uint32, limit: uint32, flag: uint16): uint64 =
+proc createGlobalDescriptor*(base: uint32, limit: uint32, flag: uint16): uint64 =
   # Create the high 32 bit segment
   result =  limit and 0x000F0000.uint32;                   # set limit bits 19:16
   result = result or (flag shl  8) and 0x00F0FF00.uint32;  # set type, p, dpl, s, g, d/b, l and avl fields
