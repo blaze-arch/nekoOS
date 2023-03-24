@@ -1,6 +1,7 @@
 import ioutils
 import drivers/gdt
 import drivers/idt
+import drivers/ports
 # Need to import so that it compiles along with the whole project
 import string_impl
 
