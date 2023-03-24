@@ -58,8 +58,8 @@ proc createDescriptor*(base: uint32, limit: uint32, flag: uint16): uint64 =
   result = result or base  shl 16;                   # set base bits 15:0
   result = result or limit and 0x0000FFFF;           # set limit bits 15:0
 
-#proc loadGdt*() {.importc: "loadGdt", varargs.}
-
-proc loadGdt*() {.importc: "loadGdt".}
-
-#var gdt_array* {.importc, nodecl.}: ptr seq[uint64]
+proc loadGdt*(where: pointer) {.asmNoStackFrame.} = 
+  # eax is the arg of where
+  asm """
+    lgdt [eax]
+  """
