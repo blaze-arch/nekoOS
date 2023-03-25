@@ -10,9 +10,6 @@ type
   TMultiboot_header = object
   PMultiboot_header = ptr TMultiboot_header
 
-var idt_arr: array[256, interruptDescriptor]
-var gdt_arr: array[64, uint64]
-
 proc NimMain {.importc.}
 
 proc kmain(mb_header: PMultiboot_header, magic: int) {.exportc.} =

@@ -1,3 +1,5 @@
+var gdt_arr*: array[64, uint64]
+
 template seg_desctype*(x: int): int = x shl 0x04        ## Descriptor type (0 for system, 1 for code/data)
 template seg_pres*(x: int): int = x shl 0x07            ## Present
 template seg_savl*(x: int): int = x shl 0x0c            ## Available for system use
