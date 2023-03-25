@@ -24,12 +24,7 @@ proc kmain(mb_header: PMultiboot_header, magic: int) {.exportc.} =
   setColor(makeColor(LightBlue, White))
   writeLn("nekoOS")
 
-  gdt_arr[0] = createGlobalDescriptor(0, 0, 0)
-  gdt_arr[1] = createGlobalDescriptor(0, 0x000FFFFF, gdt_code_pl0)
-  gdt_arr[2] = createGlobalDescriptor(0, 0x000FFFFF, gdt_data_pl0)
-
-  loadGdt(addr gdt_arr)
-  loadIdt(addr idt_arr)
+  initGdt()
 
   writeLn("Loaded GDT and IDT!")
 
@@ -39,3 +34,5 @@ proc kmain(mb_header: PMultiboot_header, magic: int) {.exportc.} =
   writeLn(str)
   write("uwu\nuwu\n")
   writeLn("other test")
+
+  

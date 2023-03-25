@@ -1,4 +1,11 @@
-var gdt_arr*: array[4096, uint64]
+var gdt_arr*: array[5, uint64]
+
+type
+  gdt_ptr* {.packed.} = object
+    limit*: uint16 # upper 16 bits of all selector limits
+    base*: uint32  # address of first element in GDT Array
+
+var gdt_pointer: gdt_ptr
 
 template seg_desctype*(x: int): int = x shl 0x04        ## Descriptor type (0 for system, 1 for code/data)
 template seg_pres*(x: int): int = x shl 0x07            ## Present
@@ -60,12 +67,18 @@ proc createGlobalDescriptor*(base: uint32, limit: uint32, flag: uint16): uint64 
   result = result or base  shl 16;                   # set base bits 15:0
   result = result or limit and 0x0000FFFF;           # set limit bits 15:0
 
-proc loadGdt*(where: pointer) {.asmNoStackFrame.} = 
-  # eax is the arg of where
-  asm """
-    lgdt (%eax)
-    mov %ax, 0x10
-    mov %ss, %ax
-    mov %ds, %ax
-    mov %cs, %ax
-  """
+{.push stackTrace:off.}
+proc loadGdt*(where: pointer) {.importc: "loadGdt".}
+{.pop.}
+
+proc initGdt*() =
+  gdt_pointer.limit = (sizeof(uint64) * 5) - 1
+  gdt_pointer.base = cast[uint32](addr gdt_arr)
+
+  gdt_arr[0] = createGlobalDescriptor(0, 0, 0)
+  gdt_arr[1] = createGlobalDescriptor(0, 0xFFFFFFFF'u32, gdt_code_pl0)
+  gdt_arr[2] = createGlobalDescriptor(0, 0xFFFFFFFF'u32, gdt_data_pl0)
+  gdt_arr[3] = createGlobalDescriptor(0, 0xFFFFFFFF'u32, gdt_code_pl3)
+  gdt_arr[4] = createGlobalDescriptor(0, 0xFFFFFFFF'u32, gdt_data_pl3)
+
+  loadGdt(addr gdt_pointer)
