@@ -1,2 +1,5 @@
 nimcache
 *.o
+nekoos.bin
+kernel/nimcache
+libraries/neko_libc/nimcache

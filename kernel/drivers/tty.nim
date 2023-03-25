@@ -27,6 +27,8 @@ const
 
 var
   VGABuffer: PVIDMem = nil
+  CurrentPosition: TPos = (0, 0)
+  CurrentColor: TAttribute
 
 proc initTTY*(buffer: PVIDMem) =
   VGABuffer = buffer
@@ -79,6 +81,44 @@ proc writeString*(vram: PVidMem, text: string, color: TAttribute, pos: TPos) =
 
 proc writeString*(text: string, color: TAttribute, pos: TPos) =
   writeString(VGABuffer, text, color, pos)
+
+proc setColor*(color: TAttribute) =
+  CurrentColor = color
+
+proc setPosition*(pos: TPos) =
+  CurrentPosition = pos
+
+var used_newline = false
+
+proc write*(text: string) =
+  if CurrentPosition.x != 0 and not used_newline:
+    discard
+  else:
+    CurrentPosition.x = 0
+  for i in 0 .. text.len-1:
+    if text[i] != '\n':
+      VGABuffer.writeChar(makeEntry(text[i], CurrentColor), CurrentPosition)
+      CurrentPosition.x = CurrentPosition.x + 1
+    else:
+      CurrentPosition.x = 0
+      CurrentPosition.y = CurrentPosition.y + 1
+  if text[text.len-1] != '\n':
+    used_newline = false
+  else:
+    used_newline = true
+
+proc writeLn*(text: string) =
+  if used_newline:
+    CurrentPosition.x = 0
+  for i in 0 .. text.len-1:
+    if text[i] != '\n':
+      VGABuffer.writeChar(makeEntry(text[i], CurrentColor), CurrentPosition)
+      CurrentPosition.x = CurrentPosition.x + 1
+    else:
+      CurrentPosition.x = 0
+      CurrentPosition.y = CurrentPosition.y + 1
+  CurrentPosition.y = CurrentPosition.y + 1
+  used_newline = true
 
 proc screenClear*(video_mem: PVidMem, color: TVGAColor) =
   ## Clears the screen with a specified ``color``.
