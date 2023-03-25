@@ -1,15 +1,20 @@
-all: build
-build:
-	@echo "Cleaning nimcache"
-	rm -rf nimcache
-	@echo "Compiling..."
-	nim c -d:release --nimcache:nimcache --gcc.exe:i686-elf-gcc main.nim
-	i686-elf-as boot.s -o boot.o
-	@echo "Linking..."
-	i686-elf-gcc -T linker.ld -o main.bin -ffreestanding -O2 -nostdlib boot.o nimcache/*.o -lgcc
-run:
-	qemu-system-i386 -kernel main.bin
+all: clean build_kernel
+
+build_world:
+	@echo "Indev! :("
+
+build_libc:
+	@echo "Indeeev!!! :("
+
+build_kernel:
+	@echo "Building kernel! ^w^"
+	@make -C kernel
+
 clean:
-	rm ./*.o
-	rm ./nimcache -rf
-	rm ./main.bin
+	@echo "Cleaning! ^w^"
+	@make -C kernel clean
+	@rm ./nekoos.bin
+
+run:
+	@echo "Running kernel in QEMU! :3"
+	qemu-system-i386 -kernel nekoos.bin

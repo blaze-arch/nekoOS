@@ -1,7 +1,8 @@
-import ioutils
-import drivers/gdt
-import drivers/idt
-import drivers/ports
+import drivers/tty
+import cpu/gdt
+import cpu/idt
+import cpu/ports
+
 # Need to import so that it compiles along with the whole project
 import string_impl
 
@@ -20,6 +21,8 @@ proc kmain(mb_header: PMultiboot_header, magic: int) {.exportc.} =
     discard # Something went wrong?
 
   var vram = cast[PVIDMem](0xB8000)
+
+  initTTY(vram)
   screenClear(vram, LightBlue) # Make the screen light blue.
 
   # Demonstration of error handling.
@@ -27,8 +30,8 @@ proc kmain(mb_header: PMultiboot_header, magic: int) {.exportc.} =
   #var outOfBounds = vram[x]
 
   let attr = makeColor(LightBlue, White)
-  writeString(vram, "NekoOS", attr, (25, 9))
-  
+  writeString(vram, "nekoOS", attr, (25, 9))
+
   gdt_arr[0] = createGlobalDescriptor(0, 0, 0)
   gdt_arr[1] = createGlobalDescriptor(0, 0x000FFFFF, gdt_code_pl0)
   gdt_arr[2] = createGlobalDescriptor(0, 0x000FFFFF, gdt_data_pl0)
@@ -41,14 +44,8 @@ proc kmain(mb_header: PMultiboot_header, magic: int) {.exportc.} =
   loadGdt(addr gdt_arr)
   loadIdt(addr idt_arr)
 
-  writeString(vram, "I need to make keyboard driver XD", attr, (25, 10))
+  writeString(vram, "Loaded GDT and IDT! ^w^", attr, (25, 10))
   var str = "Look at me!"
   str &= " Wow, I got some more text!"
 
   writeString(vram, str, attr, (25, 11))
-
-  #var x = newOrderedTable[string, string]()
-  #x["Hello"] = "World"
-  #x["World"] = "Hello"
-  #let otherStr = $x
-  #writeString(vram, otherStr, attr, (25, 12))

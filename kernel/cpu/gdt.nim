@@ -62,4 +62,8 @@ proc loadGdt*(where: pointer) {.asmNoStackFrame.} =
   # eax is the arg of where
   asm """
     lgdt (%eax)
+    mov %ax, 0x10
+    mov %ss, %ax
+    mov %ds, %ax
+    mov %cs, %ax
   """
