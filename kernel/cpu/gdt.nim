@@ -11,10 +11,10 @@ type
     limit*: uint16
     base*: uint32
 
-var gdt_arr*: array[5, gdt_entry]
+var gdt_arr*: array[3, gdt_entry]
 var gdt_pointer {.exportc.}: gdt_ptr
 
-proc loadGdt*() {.importc: "loadGdt".} # declared in gdt.s
+proc loadGdt() {.importc: "loadGdt".} # declared in gdt.s
 
 proc gdtSet*(index: int, base: uint32, limit: uint32, access: uint8, gran: uint8) =
   gdt_arr[index].base_low = (base and 0xFFFF).uint16
@@ -29,7 +29,7 @@ proc gdtSet*(index: int, base: uint32, limit: uint32, access: uint8, gran: uint8
 
 proc initGdt*() =
   # Set the gdt pointer and limit
-  gdt_pointer.limit = cast[uint16]((sizeof(gdt_entry) * 5) - 1)
+  gdt_pointer.limit = cast[uint16]((sizeof(gdt_entry) * 3) - 1)
   gdt_pointer.base = cast[uint32](addr(gdt_arr))
 
   # Init null descriptor

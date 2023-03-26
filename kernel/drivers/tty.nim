@@ -32,6 +32,7 @@ var
   CurrentPosition: TPos = (0, 0)
   CurrentColor: TAttribute
   bg_color: TVGAColor
+  fg_color: TVGAColor
 
 proc makeColor*(bg: TVGAColor, fg: TVGAColor): TAttribute =
   ## Combines a foreground and background color into a ``TAttribute``.
@@ -48,8 +49,22 @@ proc makeEntry*(c: char, color: TAttribute): TEntry =
 proc setColor*(color: TAttribute) =
   CurrentColor = color
 
+proc setColor*(bg: TVGAColor, fg: TVGAColor) =
+  CurrentColor = makeColor(bg, fg)
+
+proc setBgColor*(color: TVGAColor) =
+  bg_color = color
+  CurrentColor = makeColor(bg_color, fg_color)
+
+proc setFgColor*(color: TVGAColor) =
+  fg_color = color
+  CurrentColor = makeColor(bg_color, fg_color)
+
 proc setPosition*(pos: TPos) =
   CurrentPosition = pos
+
+proc setPosition*(x: int, y: int) =
+  CurrentPosition = (x, y)
 
 proc initTTY*(buffer: PVIDMem) =
   VGABuffer = buffer
@@ -103,14 +118,13 @@ proc putChar*(c: char) = # Writes a single character out to the screen.
   moveCursor() # Move the hardware cursor.
 
 proc screenClear*() =
+  setPosition(0, 0)
   var i = 0
   let color = makeColor(bg_color, bg_color)
   let space = makeEntry(' ', color)
   while i <= 80 * 25:
     VGABuffer[i] = space
     inc(i)
-  setPosition((0, 0))
-  moveCursor()
 
 proc screenClear*(color: TVGAColor) =
   let attr = makeColor(color, color)

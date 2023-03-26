@@ -1,4 +1,6 @@
 import memory
+import isrs
+import ../drivers/tty
 
 type
   idt_entry {.packed.} = object
@@ -24,7 +26,9 @@ proc idtSet*(index: uint8, base: uint32, sel: uint16, flags: uint8) =
 
   idt_arr[index].sel = sel
   idt_arr[index].always0 = 0
-  idt_arr[index].flags = flags
+  # We must uncomment the OR below when we get to using user-mode.
+  # It sets the interrupt gate's privilege level to 3.
+  idt_arr[index].flags = flags # or 0x60.uint8
 
 proc initIdt*() =
   # Set the limit and base
@@ -35,6 +39,39 @@ proc initIdt*() =
   memset(ptr_idt, 0, cast[uint32](sizeof(idt_entry) * 256))
 
   # ISRs go here
+
+  idtSet(0, cast[uint32](isr0), 0x08, 0x8e)
+  idtSet(1, cast[uint32](isr1), 0x08, 0x8e)
+  idtSet(2, cast[uint32](isr2), 0x08, 0x8e)
+  idtSet(3, cast[uint32](isr3), 0x08, 0x8e)
+  idtSet(4, cast[uint32](isr4), 0x08, 0x8e)
+  idtSet(5, cast[uint32](isr5), 0x08, 0x8e)
+  idtSet(6, cast[uint32](isr6), 0x08, 0x8e)
+  idtSet(7, cast[uint32](isr7), 0x08, 0x8e)
+  idtSet(8, cast[uint32](isr8), 0x08, 0x8e)
+  idtSet(9, cast[uint32](isr9), 0x08, 0x8e)
+  idtSet(10, cast[uint32](isr10), 0x08, 0x8e)
+  idtSet(11, cast[uint32](isr11), 0x08, 0x8e)
+  idtSet(12, cast[uint32](isr12), 0x08, 0x8e)
+  idtSet(13, cast[uint32](isr13), 0x08, 0x8e)
+  idtSet(14, cast[uint32](isr14), 0x08, 0x8e)
+  idtSet(15, cast[uint32](isr15), 0x08, 0x8e)
+  idtSet(16, cast[uint32](isr16), 0x08, 0x8e)
+  idtSet(17, cast[uint32](isr17), 0x08, 0x8e)
+  idtSet(18, cast[uint32](isr18), 0x08, 0x8e)
+  idtSet(19, cast[uint32](isr19), 0x08, 0x8e)
+  idtSet(20, cast[uint32](isr20), 0x08, 0x8e)
+  idtSet(21, cast[uint32](isr21), 0x08, 0x8e)
+  idtSet(22, cast[uint32](isr22), 0x08, 0x8e)
+  idtSet(23, cast[uint32](isr23), 0x08, 0x8e)
+  idtSet(24, cast[uint32](isr24), 0x08, 0x8e)
+  idtSet(25, cast[uint32](isr25), 0x08, 0x8e)
+  idtSet(26, cast[uint32](isr26), 0x08, 0x8e)
+  idtSet(27, cast[uint32](isr27), 0x08, 0x8e)
+  idtSet(28, cast[uint32](isr28), 0x08, 0x8e)
+  idtSet(29, cast[uint32](isr29), 0x08, 0x8e)
+  idtSet(30, cast[uint32](isr30), 0x08, 0x8e)
+  idtSet(31, cast[uint32](isr31), 0x08, 0x8e)
 
   # Tell the cpu about our idt
   loadIdt()

@@ -22,10 +22,16 @@ proc kmain(mb_header: PMultiboot_header, magic: int) {.exportc.} =
   var vram = cast[PVIDMem](0xB8000)
 
   initTTY(vram)
-  setColor(makeColor(LightBlue, White))
+  setColor(LightBlue, White)
   screenClear() # Make the screen light blue.
 
-  for i in 0..100:
-    writeString("Test Scroll!")
-    writeString($i)
-    writeString("\n")
+  writeString("nekoOS\n")
+
+  initGdt()
+  writeString("loaded gdt!\n")
+  initIdt()
+  writeString("loaded idt!\n")
+
+  asm """
+    int $0x03
+  """
