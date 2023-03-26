@@ -1,6 +1,9 @@
 import drivers/tty
 import cpu/gdt
 import cpu/idt
+import cpu/isrs
+import nekoapi
+import strutils
 
 # Need to import so that it compiles along with the whole project
 import string_impl
@@ -19,20 +22,12 @@ proc kmain(mb_header: PMultiboot_header, magic: int) {.exportc.} =
   var vram = cast[PVIDMem](0xB8000)
 
   initTTY(vram)
-  screenClear(vram, LightBlue) # Make the screen light blue.
-
   setColor(makeColor(LightBlue, White))
-  writeLn("nekoOS")
+  screenClear() # Make the screen light blue.
 
-  initGdt()
-
-  writeLn("Loaded GDT and IDT!")
-
-  var str = "Look at me!"
-  str &= " Wow, I got some more text!"
-
-  writeLn(str)
-  write("uwu\nuwu\n")
-  writeLn("other test")
-
-  
+  writeString("nekoOS")
+  writeString(" i love you\nnewline!")
+  for i in 0..100:
+    writeString("Test Scroll!")
+    writeString($i)
+    writeString("\n")

@@ -1,60 +1,40 @@
+import memory
+
 type
-  interruptDescriptor* = object  ## Interrupt Descriptor object :)
-    offset_1*: uint16            ## offset bits 0..15
-    selector*: uint16            ## a code segment selector in GDT or LDT
-    zero*: uint8                 ## unused, set to 0
-    type_attributes*: uint8      ## gate type, dpl, and p fiels
-    offset_2*: uint16            ## offset bits 16..31
+  idt_entry {.packed.} = object
+    base_low*: uint16
+    sel*: uint16
+    always0*: uint8
+    flags*: uint8
+    base_high*: uint16
 
-var idt_arr*: array[256, interruptDescriptor]
+  idt_ptr {.packed.} = object
+    limit*: uint16
+    base*: uint32
 
-var idt_exceptions* = ["Division Error", "Debug", "Non-maskable Interrupt",
-                      "Breakpoint", "Overflow", "Bound Range Exceeded", "Invalid Opcode",
-                      "Device Not Available", "Double Fault", "Coprocessor Segment Overrun",
-                      "Invalid TSS", "Segment Not Present", "Stack-Segment Fault",
-                      "General Protection Fault", "Page Fault", "Reserved", 
-                      "x87 Floating-Point Exception", "Alignment Check", "Machine Check",
-                      "SIMD Floating-Point Exception", "Virtualization Exception",
-                      "Control Protection Exception", "Reserved", "Reserved", "Reserved",
-                      "Reserved", "Reserved", "Reserved", "Hypervisor Injection Exception",
-                      "VMM Communication Exception", "Security Exception", "Reserved"]
+var idt_arr: array[0..255, idt_entry]
+var idt_pointer {.exportc.}: idt_ptr
 
-const taskGate* = 0b0101            ##  Task Gate, Offset value is unused and should be set to zero. 
-const interruptGate16bit* = 0b0110  ##  16-bit Interrupt Gate 
-const trapGate16bit* = 0b0111       ##  16-bit Trap Gate 
-const intteruptGate32bit* = 0b1110  ##  32-bit Interrupt Gate 
-const trapGate32bit* = 0b1111       ##  32-bit Trap Gate 
+# Declared in idt.s
+proc loadIdt() {.importc: "loadIdt".}
 
-const cpu_ring0* = 0b00 ## kernel
-const cpu_ring1* = 0b01 ## unused
-const cpu_ring2* = 0b10 ## unused
-const cpu_ring3* = 0b11 ## userspace
+proc idtSet*(index: uint8, base: uint32, sel: uint16, flags: uint8) =
+  idt_arr[index].base_low = (base and 0xFFFF).uint16
+  idt_arr[index].base_high = ((base shr 16) and 0xFFFF).uint16
 
-proc createSegmentSelector*(index: uint8 = 0, ti: uint8 = 0, ## Create Segment Selector (selector in createInterruptDescriptor())
-                          cpu_ring: uint8 = 0): uint16 =
-  result = cpu_ring
-  result = result + (ti shl 2)
-  result = result + (index.uint16 shl 4)
+  idt_arr[index].sel = sel
+  idt_arr[index].always0 = 0
+  idt_arr[index].flags = flags
 
-proc createInterruptDescriptor*(address: uint32 = 0, selector: uint16 = 0, ## Create Interrupt Descriptor object ;)
-                            gate_type: uint8 = 0, cpu_ring: uint8 = 0): interruptDescriptor = 
-  result.offset_1 = address.uint16
-  result.offset_2 = (address shr 16).uint16
-  result.selector = selector
-  result.zero = 0
-  result.type_attributes = 0b10000000 # p - must be 1
-  result.type_attributes = result.type_attributes + (cpu_ring shl 5)
-  result.type_attributes = result.type_attributes + gate_type
+proc initIdt*() =
+  # Set the limit and base
+  idt_pointer.limit = cast[uint16](sizeof(idt_arr) * 256) - 1
+  idt_pointer.base = cast[uint32](idt_arr.addr)
 
-proc setIdt*(index: uint, descriptor: interruptDescriptor): int = ## Safe Function for Set Descriptor in IDT
-  if (index < 32):
-    return -1 # Error
-  else:
-    idt_arr[index] = descriptor
-    return 0  # Success
+  var ptr_idt: ptr uint8 = cast[ptr uint8](idt_arr.addr)
+  memset(ptr_idt, 0, cast[uint32](sizeof(idt_entry) * 256))
 
-proc loadIdt*(where: pointer) {.asmNoStackFrame.} = 
-  # eax is the arg of where
-  asm """
-    lidt (%eax)
-  """
+  # ISRs go here
+
+  # Tell the cpu about our idt
+  loadIdt()

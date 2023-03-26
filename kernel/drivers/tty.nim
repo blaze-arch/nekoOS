@@ -1,3 +1,5 @@
+import ../cpu/ports
+
 type
   PVIDMem* = ptr array[0..65_000, TEntry]
   TVGAColor* = enum
@@ -29,12 +31,11 @@ var
   VGABuffer: PVIDMem = nil
   CurrentPosition: TPos = (0, 0)
   CurrentColor: TAttribute
-
-proc initTTY*(buffer: PVIDMem) =
-  VGABuffer = buffer
+  bg_color: TVGAColor
 
 proc makeColor*(bg: TVGAColor, fg: TVGAColor): TAttribute =
   ## Combines a foreground and background color into a ``TAttribute``.
+  bg_color = bg
   return (ord(fg).uint8 or (ord(bg).uint8 shl 4)).TAttribute
 
 proc makeEntry*(c: char, color: TAttribute): TEntry =
@@ -44,88 +45,85 @@ proc makeEntry*(c: char, color: TAttribute): TEntry =
   let color16 = color.uint16
   return (c16 or (color16 shl 8)).TEntry
 
-proc writeChar*(vram: PVidMem, entry: TEntry, pos: TPos) =
-  ## Writes a character at the specified ``pos``.
-  let index = (80 * pos.y) + pos.x
-  vram[index] = entry
-
-proc writeChar*(entry: TEntry, pos: TPos) =
-  writeChar(VGABuffer, entry, pos)
-
-proc rainbow*(vram: PVidMem, text: string, pos: TPos) =
-  ## Writes a string at the specified ``pos`` with varying colors which, despite
-  ## the name of this function, do not resemble a rainbow.
-  var colorBG = DarkGrey
-  var colorFG = Blue
-  proc nextColor(color: TVGAColor, skip: set[TVGAColor]): TVGAColor =
-    if color == White:
-      result = Black  
-    else:
-      result = (ord(color) + 1).TVGAColor
-    if result in skip: result = nextColor(result, skip)
-  
-  for i in 0 .. text.len-1:
-    colorFG = nextColor(colorFG, {Black, Cyan, DarkGrey, Magenta, Red,
-                                  Blue, LightBlue, LightMagenta})
-    let attr = makeColor(colorBG, colorFG)
-    
-    vram.writeChar(makeEntry(text[i], attr), (pos.x+i, pos.y))
-
-proc rainbow*(text: string, pos: TPos) =
-  rainbow(VGABuffer, text, pos)
-
-proc writeString*(vram: PVidMem, text: string, color: TAttribute, pos: TPos) =
-  ## Writes a string at the specified ``pos`` with the specified ``color``.
-  for i in 0 .. text.len-1:
-    vram.writeChar(makeEntry(text[i], color), (pos.x+i, pos.y))
-
-proc writeString*(text: string, color: TAttribute, pos: TPos) =
-  writeString(VGABuffer, text, color, pos)
-
 proc setColor*(color: TAttribute) =
   CurrentColor = color
 
 proc setPosition*(pos: TPos) =
   CurrentPosition = pos
 
-var used_newline = false
+proc initTTY*(buffer: PVIDMem) =
+  VGABuffer = buffer
 
-proc write*(text: string) =
-  if CurrentPosition.x != 0 and not used_newline:
-    discard
-  else:
+proc moveCursor() =
+  var cursorPos = CurrentPosition.y  * 80 + CurrentPosition.x
+  out8(0x3d4, 14)                      # Tell the VGA board we are setting the high cursor byte.
+  out8(0x3d5, (cursorPos shr 8).uint8) # Send the high cursor byte.
+  out8(0x3d4, 15)                      # Tell the VGA board we are setting the low cursor byte.
+  out8(0x3D5, cursorPos.uint8)         # Send the low cursor byte.
+
+proc scroll() =
+   if CurrentPosition.y >= 25: # Row 25 is the end, this means we need to scroll up
+    # Move the current text chunk that makes up the screen
+    # back in the buffer by a line
+    var i = 80
+    while i < 24 * 80:
+      VGABuffer[i] = VGABuffer[i + 80]
+      inc(i)
+
+    # The last line should now be blank. Do this by writing 80 spaces to it.
+    i = 24 * 80
+    while i < 25 * 80:
+      VGABuffer[i] = makeEntry(' ', CurrentColor)
+      inc(i)
+    # The cursor should now be on the last line.
+    CurrentPosition.y = 24
+
+proc putChar*(c: char) = # Writes a single character out to the screen.
+  if c == '\b' and CurrentPosition.x > 1: # Handle a backspace, by moving the cursor back one space
+    dec(CurrentPosition.x)
+  elif c.uint8 == 0x09: # tab
+       CurrentPosition.x = (CurrentPosition.x + 8) and not 7
+  elif c == '\r':
     CurrentPosition.x = 0
-  for i in 0 .. text.len-1:
-    if text[i] != '\n':
-      VGABuffer.writeChar(makeEntry(text[i], CurrentColor), CurrentPosition)
-      CurrentPosition.x = CurrentPosition.x + 1
-    else:
-      CurrentPosition.x = 0
-      CurrentPosition.y = CurrentPosition.y + 1
-  if text[text.len-1] != '\n':
-    used_newline = false
-  else:
-    used_newline = true
-
-proc writeLn*(text: string) =
-  if used_newline:
+  elif c == '\n': # Handle newline by moving cursor back to left and increasing the row
     CurrentPosition.x = 0
-  for i in 0 .. text.len-1:
-    if text[i] != '\n':
-      VGABuffer.writeChar(makeEntry(text[i], CurrentColor), CurrentPosition)
-      CurrentPosition.x = CurrentPosition.x + 1
-    else:
-      CurrentPosition.x = 0
-      CurrentPosition.y = CurrentPosition.y + 1
-  CurrentPosition.y = CurrentPosition.y + 1
-  used_newline = true
+    inc CurrentPosition.y
 
-proc screenClear*(video_mem: PVidMem, color: TVGAColor) =
-  ## Clears the screen with a specified ``color``.
+  elif (c.uint8) >= (' '.uint8): # Handle any other printable character.
+    VGABuffer[CurrentPosition.y * 80 + CurrentPosition.x] = makeEntry(c, CurrentColor)
+    inc CurrentPosition.x
+
+  # Check if we need to insert a new line because we have reached the end
+  # of the screen.
+  if CurrentPosition.x >= 80:
+    CurrentPosition.x = 0
+    inc CurrentPosition.y
+
+  scroll() # Scroll the screen if needed.
+  move_cursor() # Move the hardware cursor.
+
+proc screenClear*() =
+  var i = 0
+  let color = makeColor(bg_color, bg_color)
+  let space = makeEntry(' ', color)
+  while i <= 80 * 25:
+    VGABuffer[i] = space
+    inc(i)
+
+proc screenClear*(color: TVGAColor) =
   let attr = makeColor(color, color)
   let space = makeEntry(' ', attr)
-  
   var i = 0
-  while i <=% VGAWidth*VGAHeight:
-    video_mem[i] = space
+  while i <= 80 * 25:
+    VGABuffer[i] = space
     inc(i)
+
+proc writeString*(s: string) =
+  for c in s:
+    putChar(c)
+
+proc write*(s: string) =
+  writeString(s)
+
+proc writeLn*(s: string) =
+  writeString(s & "\n")

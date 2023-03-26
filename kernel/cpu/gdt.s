@@ -1,7 +1,9 @@
-[global loadGdt]     ; Allows the Nim code to call loadGdt().
+global loadGdt     ; Allows the Nim code to call loadGdt().
+
+extern gdt_pointer
 
 loadGdt:
-   lgdt [eax]        ; Load the new GDT pointer
+   lgdt [gdt_pointer]        ; Load GDT pointer
 
    mov ax, 0x10      ; 0x10 is the offset in the GDT to our data segment
    mov ds, ax        ; Load all data segment selectors

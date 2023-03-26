@@ -1,84 +1,45 @@
-var gdt_arr*: array[5, uint64]
-
 type
-  gdt_ptr* {.packed.} = object
-    limit*: uint16 # upper 16 bits of all selector limits
-    base*: uint32  # address of first element in GDT Array
+  gdt_entry {.packed.} = object
+    limit_low*: uint16
+    base_low*: uint16
+    base_middle*: uint8
+    access*: uint8
+    granularity*: uint8
+    base_high*: uint8
 
-var gdt_pointer: gdt_ptr
+  gdt_ptr {.packed.} = object
+    limit*: uint16
+    base*: uint32
 
-template seg_desctype*(x: int): int = x shl 0x04        ## Descriptor type (0 for system, 1 for code/data)
-template seg_pres*(x: int): int = x shl 0x07            ## Present
-template seg_savl*(x: int): int = x shl 0x0c            ## Available for system use
-template seg_long*(x: int): int = x shl 0x0d            ## Long mode
-template seg_size*(x: int): int = x shl 0x0e            ## Size (0 for 16-bit, 1 for 32-bit)
-template seg_gran*(x: int): int = x shl 0x0f            ## Granularity (0 for 1B - 1MB, 1 for 4KB - 4GB)
-template seg_priv*(x: int): int = (x and 0x03) shl 0x05 ## Set privilage level (0 - 3)
+var gdt_arr*: array[5, gdt_entry]
+var gdt_pointer {.exportc.}: gdt_ptr
 
+proc loadGdt*() {.importc: "loadGdt".} # declared in gdt.s
 
-const seg_data_rd*        = 0x00 ## Read-Only
-const seg_data_rda*       = 0x01 ## Read-Only, accessed
-const seg_data_rdwr*      = 0x02 ## Read/Write
-const seg_data_rdwra*     = 0x03 ## Read/Write, accessed
-const seg_data_rdexpd*    = 0x04 ## Read-Only, expand-down
-const seg_data_rdexpda*   = 0x05 ## Read-Only, expand-down, accessed
-const seg_data_dwrexpd*   = 0x06 ## Read/Write, expand-down
-const seg_data_rdwrexpda* = 0x07 ## Read/Write, expand-down, accessed
-const seg_code_ex*        = 0x08 ## Execute-Only
-const seg_code_exa*       = 0x09 ## Execute-Only, accessed
-const seg_code_exrd*      = 0x0A ## Execute/Read
-const seg_code_exrda*     = 0x0B ## Execute/Read, accessed
-const seg_code_exc*       = 0x0C ## Execute-Only, conforming
-const seg_code_exca*      = 0x0D ## Execute-Only, conforming, accessed
-const seg_code_exrdc*     = 0x0E ## Execute/Read, conforming
-const seg_code_exrdca*    = 0x0F ## Execute/Read, conforming, accessed
+proc gdtSet*(index: int, base: uint32, limit: uint32, access: uint8, gran: uint8) =
+  gdt_arr[index].base_low = (base and 0xFFFF).uint16
+  gdt_arr[index].base_middle = ((base shr 16) and 0xFF).uint8
+  gdt_arr[index].base_high = ((base shr 24) and 0xFF).uint8
 
-const gdt_code_pl0* = seg_desctype(1) or seg_pres(1) or ## Kernel Code
-              seg_savl(0) or seg_long(0) or 
-              seg_size(1) or seg_gran(1) or 
-              seg_priv(0) or seg_code_exrd
+  gdt_arr[index].limit_low = (limit and 0xFFFF).uint16
+  gdt_arr[index].granularity = ((limit shr 16) and 0x0F).uint8
 
-const gdt_data_pl0* = seg_desctype(1) or seg_pres(1) or ## Kernel Data
-              seg_savl(0) or seg_long(0) or 
-              seg_size(1) or seg_gran(1) or 
-              seg_priv(0) or seg_data_rdwr
- 
-const gdt_code_pl3* = seg_desctype(1) or seg_pres(1) or # Userspace Code
-              seg_savl(0) or seg_long(0) or
-              seg_size(1) or seg_gran(1) or
-              seg_priv(3) or seg_code_exrd
-
-const gdt_data_pl3* = seg_desctype(1) or seg_pres(1) or ## Userspace Data
-              seg_savl(0) or seg_long(0) or
-              seg_size(1) or seg_gran(1) or
-              seg_priv(3) or seg_data_rdwr
-
-proc createGlobalDescriptor*(base: uint32, limit: uint32, flag: uint16): uint64 =
-  # Create the high 32 bit segment
-  result =  limit and 0x000F0000.uint32;                   # set limit bits 19:16
-  result = result or (flag shl  8) and 0x00F0FF00.uint32;  # set type, p, dpl, s, g, d/b, l and avl fields
-  result = result or (base shr 16) and 0x000000FF.uint32;  # set base bits 23:16
-  result = result or base      and 0xFF000000.uint32;      # set base bits 31:24
- 
-  # Shift by 32 to allow for low part of segment
-  result = result shl 32;
- 
-  # Create the low 32 bit segment
-  result = result or base  shl 16;                   # set base bits 15:0
-  result = result or limit and 0x0000FFFF;           # set limit bits 15:0
-
-{.push stackTrace:off.}
-proc loadGdt*(where: pointer) {.importc: "loadGdt".}
-{.pop.}
+  gdt_arr[index].granularity = gdt_arr[index].granularity or (gran and 0xF0)
+  gdt_arr[index].access = access
 
 proc initGdt*() =
-  gdt_pointer.limit = (sizeof(uint64) * 5) - 1
-  gdt_pointer.base = cast[uint32](addr gdt_arr)
+  # Set the gdt pointer and limit
+  gdt_pointer.limit = cast[uint16]((sizeof(gdt_entry) * 5) - 1)
+  gdt_pointer.base = cast[uint32](addr(gdt_arr))
 
-  gdt_arr[0] = createGlobalDescriptor(0, 0, 0)
-  gdt_arr[1] = createGlobalDescriptor(0, 0xFFFFFFFF'u32, gdt_code_pl0)
-  gdt_arr[2] = createGlobalDescriptor(0, 0xFFFFFFFF'u32, gdt_data_pl0)
-  gdt_arr[3] = createGlobalDescriptor(0, 0xFFFFFFFF'u32, gdt_code_pl3)
-  gdt_arr[4] = createGlobalDescriptor(0, 0xFFFFFFFF'u32, gdt_data_pl3)
+  # Init null descriptor
+  gdtSet(0, 0, 0, 0, 0)
 
-  loadGdt(addr gdt_pointer)
+  # Init kernel code segment
+  gdtSet(1, 0, 0xFFFFFFFF'u32, 0x9A, 0xCF)
+
+  # Init kernel data segment
+  gdtSet(2, 0, 0xFFFFFFFF'u32, 0x92, 0xCF)
+
+  # Tell the cpu about our GDT
+  loadGdt()
