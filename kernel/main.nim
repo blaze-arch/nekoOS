@@ -25,8 +25,6 @@ proc kmain(mb_header: PMultiboot_header, magic: int) {.exportc.} =
   setColor(makeColor(LightBlue, White))
   screenClear() # Make the screen light blue.
 
-  writeString("nekoOS")
-  writeString(" i love you\nnewline!")
   for i in 0..100:
     writeString("Test Scroll!")
     writeString($i)

@@ -65,13 +65,13 @@ proc scroll() =
    if CurrentPosition.y >= 25: # Row 25 is the end, this means we need to scroll up
     # Move the current text chunk that makes up the screen
     # back in the buffer by a line
-    var i = 80
-    while i < 24 * 80:
+    var i = 0
+    while i < 24 * 80: # here 24
       VGABuffer[i] = VGABuffer[i + 80]
       inc(i)
 
     # The last line should now be blank. Do this by writing 80 spaces to it.
-    i = 24 * 80
+    i = 24 * 80 # here 24
     while i < 25 * 80:
       VGABuffer[i] = makeEntry(' ', CurrentColor)
       inc(i)
@@ -100,7 +100,7 @@ proc putChar*(c: char) = # Writes a single character out to the screen.
     inc CurrentPosition.y
 
   scroll() # Scroll the screen if needed.
-  move_cursor() # Move the hardware cursor.
+  moveCursor() # Move the hardware cursor.
 
 proc screenClear*() =
   var i = 0
@@ -109,6 +109,8 @@ proc screenClear*() =
   while i <= 80 * 25:
     VGABuffer[i] = space
     inc(i)
+  setPosition((0, 0))
+  moveCursor()
 
 proc screenClear*(color: TVGAColor) =
   let attr = makeColor(color, color)

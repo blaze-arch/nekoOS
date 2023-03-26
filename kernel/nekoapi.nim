@@ -41,7 +41,6 @@ proc debugRegs*(regs: ptr registers) =
   writeLn($regs.eax)
 
 proc panic*(message: string, regs: ptr registers) =
-  setPosition((0, 0))
   screenClear(Red)
   setColor(makeColor(Red, White))
   writeLn("Kernel panic! Sorry :(")
@@ -52,7 +51,6 @@ proc panic*(message: string, regs: ptr registers) =
     discard
 
 proc panic*(message: string) =
-  setPosition((0, 0))
   screenClear(Red)
   setColor(makeColor(Red, White))
   writeLn("Kernel panic! Sorry :(")
