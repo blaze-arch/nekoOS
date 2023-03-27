@@ -47,4 +47,6 @@ proc isr30*() {.importc.}
 proc isr31*() {.importc.}
 
 proc isr_handler(regs: registers) {.exportc.} =
+  if regs.int_no < 32:
+    panic(exceptions[regs.int_no], regs)
   writeString("recieved interrupt: " & $regs.int_no & "\n")

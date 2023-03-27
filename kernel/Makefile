@@ -15,6 +15,7 @@ build:
 	nasm -f elf32 cpu/gdt.s -o ./gdt.o
 	nasm -f elf32 cpu/idt.s -o ./idt.o
 	nasm -f elf32 cpu/isrs.s -o ./isrs.o
+	nasm -f elf32 cpu/irq.s -o ./irq.o
 	@echo "Linking..."
 	${CC} -T linker.ld -o ../${OUTFILE} -ffreestanding -O2 -nostdlib *.o nimcache/*.o -lgcc
 clean:

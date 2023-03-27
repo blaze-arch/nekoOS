@@ -14,7 +14,7 @@ type
     # Pushed By iret
     eip*, cs*, eflags*, useresp*, ss*: uint32
 
-proc debugRegs*(regs: ptr registers) =
+proc debugRegs*(regs: registers) =
   write("gs: ")
   write($regs.gs)
   write(" fs: ")
@@ -40,11 +40,12 @@ proc debugRegs*(regs: ptr registers) =
   write(" eax: ")
   writeLn($regs.eax)
 
-proc panic*(message: string, regs: ptr registers) =
+proc panic*(message: string, regs: registers) =
   setPosition(0, 0)
   screenClear(Red)
   setColor(makeColor(Red, White))
-  writeLn("Kernel panic! Sorry :(")
+  writeString("Kernel panic! Sorry :(\n")
+  writeString("nya! :c\nThere are problem on your computer!\nYou need to restart your PC! :(\n")
   debugRegs(regs)
   write("panic message: ")
   write(message)
@@ -55,8 +56,9 @@ proc panic*(message: string) =
   setPosition(0, 0)
   screenClear(Red)
   setColor(Red, White)
-  writeLn("Kernel panic! Sorry :(")
-  write("panic message: ")
+  writeString("Kernel panic! Sorry :(\n")
+  writeString("nya! :c\nThere are problem on your computer!\nYou need to restart your PC! :(\n")
+  writeString("panic message: ")
   write(message)
   while true:
     discard

@@ -32,6 +32,3 @@ proc kmain(mb_header: PMultiboot_header, magic: int) {.exportc.} =
   initIdt()
   writeString("loaded idt!\n")
 
-  asm """
-    int $0x03
-  """
