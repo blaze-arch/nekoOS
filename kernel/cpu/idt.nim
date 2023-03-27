@@ -1,4 +1,4 @@
-import memory
+import irq
 import isrs
 import ../nekoapi
 import ports
@@ -18,7 +18,6 @@ type
 
 var idt_arr: array[0..255, idt_entry]
 var idt_pointer {.exportc.}: idt_ptr
-var interrupt_handlers: array[0..255, proc(regs: registers)]
 
 # Declared in idt.s
 proc loadIdt() {.importc: "loadIdt".}
@@ -40,58 +39,8 @@ proc idtSet(index: uint8, base: uint32, sel: uint16, flags: uint8) =
   # It sets the interrupt gate's privilege level to 3.
   idt_arr[index].flags = flags # or 0x60.uint8
 
-proc irq0*() {.importc.}
-proc irq1*() {.importc.}
-proc irq2*() {.importc.}
-proc irq3*() {.importc.}
-proc irq4*() {.importc.}
-proc irq5*() {.importc.}
-proc irq6*() {.importc.}
-proc irq7*() {.importc.}
-proc irq8*() {.importc.}
-proc irq9*() {.importc.}
-proc irq10*() {.importc.}
-proc irq11*() {.importc.}
-proc irq12*() {.importc.}
-proc irq13*() {.importc.}
-proc irq14*() {.importc.}
-proc irq15*() {.importc.}
-
-
-proc remapIrq*() =
-  out8(0x20, 0x11)
-  out8(0xA0, 0x11)
-  out8(0x21, 0x20)
-  out8(0xA1, 0x28)
-  out8(0x21, 0x04)
-  out8(0xA1, 0x02)
-  out8(0x21, 0x01)
-  out8(0xA1, 0x01)
-  out8(0x21, 0x0)
-  out8(0xA1, 0x0)
-
-proc irqHandler(regs: registers) {.exportc.} =
-  # Send an EOI (end of interrupt) signal to the PICs.
-  # If this interrupt involved the slave.
-  if regs.int_no >= 40:
-    out8(0xa0, 0x20)  # Send reset signal to slave.
-
-  # Send reset signal to master. (As well as slave, if necessary).
-  out8(0x20, 0x20);
-
-  let handler = interrupt_handlers[regs.int_no]
-
-  if handler != nil:
-    writeString("Running handler...\n")
-    handler(regs)
-
-proc registerInterruptHandler*(index: uint8, handler: proc(regs: registers)) =
-  interrupt_handlers[index] = handler 
-
-proc test0*(regs: registers) =
-  writeString("hello, honey!\n")
-
 proc initIdt*() =
+
   # Set the limit and base
   idt_pointer.limit = cast[uint16](sizeof(idt_arr) * 256) - 1
   idt_pointer.base = cast[uint32](idt_arr.addr)
@@ -154,8 +103,6 @@ proc initIdt*() =
   idtSet(45, cast[uint32](irq13), 0x08, 0x8e)
   idtSet(46, cast[uint32](irq14), 0x08, 0x8e)
   idtSet(47, cast[uint32](irq15), 0x08, 0x8e)
-
-  registerInterruptHandler(0, test0)
 
   # Tell the cpu about our idt
   loadIdt()

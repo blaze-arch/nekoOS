@@ -14,6 +14,11 @@ type
     # Pushed By iret
     eip*, cs*, eflags*, useresp*, ss*: uint32
 
+proc print*(x: varargs[string, `$`]) =
+  for s in x:
+    writeString(s & " ")
+  writeString("\n")
+
 proc debugRegs*(regs: registers) =
   write("gs: ")
   write($regs.gs)

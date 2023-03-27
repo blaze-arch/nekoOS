@@ -2,6 +2,7 @@ import drivers/tty
 import cpu/gdt
 import cpu/idt
 import cpu/isrs
+import drivers/timer
 import nekoapi
 import strutils
 
@@ -25,10 +26,13 @@ proc kmain(mb_header: PMultiboot_header, magic: int) {.exportc.} =
   setColor(LightBlue, White)
   screenClear() # Make the screen light blue.
 
-  writeString("nekoOS\n")
+  print "nekoOS"
 
   initGdt()
-  writeString("loaded gdt!\n")
+  print "loaded gdt!"
   initIdt()
-  writeString("loaded idt!\n")
+  print "loaded idt!"
 
+  print "We can write integers:", 1, 2, 3
+
+  initTimer(50)
