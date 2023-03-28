@@ -2,14 +2,14 @@ import ../nekoapi
 import ../cpu/irq
 import ../cpu/ports
 
-var tick: uint32 = 0
+var tick {.volatile.}: uint32 = 0
 
 proc timerCallback(regs: registers) = 
   tick.inc
   print "Tick: ", tick
 
 proc initTimer*(frequency: uint32) =
-  registerInterruptHandler(32, cast[uint32](timerCallback))
+  installHandler(32, timerCallback)
   var division: uint32 = 1193180'u32 div frequency
 
   # Send the command byte.

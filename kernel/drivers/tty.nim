@@ -37,6 +37,7 @@ var
 proc makeColor*(bg: TVGAColor, fg: TVGAColor): TAttribute =
   ## Combines a foreground and background color into a ``TAttribute``.
   bg_color = bg
+  fg_color = fg
   return (ord(fg).uint8 or (ord(bg).uint8 shl 4)).TAttribute
 
 proc makeEntry*(c: char, color: TAttribute): TEntry =

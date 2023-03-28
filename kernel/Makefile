@@ -6,9 +6,9 @@ all: build
 
 build:
 	@echo "Cleaning nimcache"
-	touch ./dummy.o
-	rm ./*.o
-	rm -rf nimcache
+	#touch ./dummy.o
+	#rm ./*.o
+	#rm -rf nimcache
 	@echo "Compiling..."
 	nim c -d:release --nimcache:nimcache --gcc.exe:i686-elf-gcc main.nim
 	${ASMC} boot.s -o boot.o

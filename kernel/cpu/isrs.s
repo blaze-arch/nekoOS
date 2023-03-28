@@ -48,7 +48,7 @@ isr_errcode   29 ; VMM Communication Exception
 isr_errcode   30 ; Security Exception
 isr_noerrcode 31 ; Reserved
 
-extern isr_handler
+extern isrHandler
 
 isr_common_stub:
     pusha
@@ -63,7 +63,7 @@ isr_common_stub:
     mov gs, ax
     mov eax, esp
     push eax
-    mov eax, isr_handler
+    mov eax, isrHandler
     call eax
     pop eax
     pop gs

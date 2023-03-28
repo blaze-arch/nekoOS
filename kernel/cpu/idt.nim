@@ -1,8 +1,4 @@
-import irq
 import isrs
-import ../nekoapi
-import ports
-import ../drivers/tty
 
 type
   idt_entry {.packed.} = object
@@ -29,7 +25,7 @@ proc idtGetAddress*(index: uint8): uint32 =
   result = (idtGet(index).base_high).uint32
   result = result or ((idtGet(index).base_low shl 16).uint32)
 
-proc idtSet(index: uint8, base: uint32, sel: uint16, flags: uint8) =
+proc idtSet*(index: uint8, base: uint32, sel: uint16, flags: uint8) =
   idt_arr[index].base_low = (base and 0xFFFF).uint16
   idt_arr[index].base_high = ((base shr 16) and 0xFFFF).uint16
 
@@ -49,7 +45,6 @@ proc initIdt*() =
   #memset(ptr_idt, 0, cast[uint32](sizeof(idt_entry) * 256))
 
   # ISRs go here
-
   idtSet(0, cast[uint32](isr0), 0x08, 0x8e)
   idtSet(1, cast[uint32](isr1), 0x08, 0x8e)
   idtSet(2, cast[uint32](isr2), 0x08, 0x8e)
@@ -85,24 +80,7 @@ proc initIdt*() =
 
   # IRQs going here
 
-  remapIrq()
-
-  idtSet(32, cast[uint32](irq0), 0x08, 0x8e)
-  idtSet(33, cast[uint32](irq1), 0x08, 0x8e)
-  idtSet(34, cast[uint32](irq2), 0x08, 0x8e)
-  idtSet(35, cast[uint32](irq3), 0x08, 0x8e)
-  idtSet(36, cast[uint32](irq4), 0x08, 0x8e)
-  idtSet(37, cast[uint32](irq5), 0x08, 0x8e)
-  idtSet(38, cast[uint32](irq6), 0x08, 0x8e)
-  idtSet(39, cast[uint32](irq7), 0x08, 0x8e)
-  idtSet(40, cast[uint32](irq8), 0x08, 0x8e)
-  idtSet(41, cast[uint32](irq9), 0x08, 0x8e)
-  idtSet(42, cast[uint32](irq10), 0x08, 0x8e)
-  idtSet(43, cast[uint32](irq11), 0x08, 0x8e)
-  idtSet(44, cast[uint32](irq12), 0x08, 0x8e)
-  idtSet(45, cast[uint32](irq13), 0x08, 0x8e)
-  idtSet(46, cast[uint32](irq14), 0x08, 0x8e)
-  idtSet(47, cast[uint32](irq15), 0x08, 0x8e)
+  #irqRemap()
 
   # Tell the cpu about our idt
   loadIdt()

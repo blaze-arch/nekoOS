@@ -1,10 +1,11 @@
 import drivers/tty
 import cpu/gdt
 import cpu/idt
-import cpu/isrs
+#import cpu/isrs
+import cpu/irq
 import drivers/timer
 import nekoapi
-import strutils
+#import strutils
 
 # Need to import so that it compiles along with the whole project
 import string_impl
@@ -32,7 +33,9 @@ proc kmain(mb_header: PMultiboot_header, magic: int) {.exportc.} =
   print "loaded gdt!"
   initIdt()
   print "loaded idt!"
+  irqInstall()
+  print "remapped irq!"
 
-  print "We can write integers:", 1, 2, 3
-
-  initTimer(50)
+  asm """
+    int $32
+  """

@@ -1,5 +1,4 @@
 import ../nekoapi
-import ../drivers/tty
 
 var exceptions* = ["Division Error", "Debug", "Non-maskable Interrupt",
                       "Breakpoint", "Overflow", "Bound Range Exceeded", "Invalid Opcode",
@@ -46,7 +45,6 @@ proc isr29*() {.importc.}
 proc isr30*() {.importc.}
 proc isr31*() {.importc.}
 
-proc isr_handler(regs: registers) {.exportc.} =
+proc isrHandler(regs: registers) {.exportc.} =
   if regs.int_no < 32:
     panic(exceptions[regs.int_no], regs)
-  writeString("recieved interrupt: " & $regs.int_no & "\n")
