@@ -121,12 +121,27 @@ proc irqRemap(offset1, offset2: uint8) =
   out8(PIC1_DATA.uint16, a1)
   out8(PIC2_DATA.uint16, a2)
 
+proc irqUnmask() = 
+  var current_i = 0
+  var port: uint16 = 0
+  var value: uint8 = 0
+  for i in 0..15:
+    current_i.inc
+    if current_i < 8:
+      port = PIC1_DATA
+    else:
+      port = PIC2_DATA
+      current_i = current_i - 8
+    value = ((in8(port)).uint8 and (not(1 shl current_i)).uint8).uint8
+    out8(port, value)
+
 proc irqInstall*() =
   # Lazily do this instead of memset
   for i in 0..15:
     uninstallHandler(i)
   # Remove conflicts with IRQ 0 - IRQ 8
   irqRemap(32, 40)
+  irqUnmask()
   for i in 0..15:
     idtSet(cast[uint8](32 + i), getIrq(i), cast[uint16](0x08), cast[uint8](0x8E))
 

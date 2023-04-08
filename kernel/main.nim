@@ -57,11 +57,5 @@ proc kmain(mb_header: PMultiboot_header, magic: int) {.exportc.} =
   irqInstall()
   print "loaded irq!"
   
-  initTimer(3)
-  print "inited?"
-  print "currentTimerFrequency() = ", currentTimerFrequency()
-
   initTimer(2)
-  print "experimento"
-  print currentTImerFrequency()
-
+  print "inited?"
